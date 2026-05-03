@@ -1,111 +1,65 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.express as px
 
-st.set_page_config(page_title="Ultra Pro Dashboard", layout="wide")
+st.set_page_config(layout="wide")
 
-st.title("📊 ULTRA PRO Power BI Style Dashboard")
+st.title("📊 CRM Style Dashboard")
 
-# ---------------- UPLOAD ----------------
-file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
+# ---------------- SAMPLE DATA (replace with upload later) ----------------
+df = pd.DataFrame({
+    "Month": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+    "Tickets": [30, 50, 40, 60, 80, 70],
+    "Resolved": [20, 40, 30, 50, 65, 60]
+})
 
-if file is not None:
+# ---------------- SIDEBAR ----------------
+st.sidebar.title("📌 Menu")
+page = st.sidebar.radio("Go to", ["Dashboard", "Analytics"])
 
-    # Read data
-    if file.name.endswith("csv"):
-        df = pd.read_csv(file)
-    else:
-        df = pd.read_excel(file)
+# ---------------- DASHBOARD ----------------
+if page == "Dashboard":
 
-    # ---------------- SIDEBAR NAVIGATION ----------------
-    st.sidebar.title("📌 Navigation")
+    st.subheader("📊 KPI Overview")
 
-    page = st.sidebar.radio(
-        "Go to",
-        ["📊 Overview", "📈 Trend Analysis", "🔥 Correlation", "🧠 Insights"]
-    )
+    col1, col2, col3, col4 = st.columns(4)
 
-    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+    col1.metric("Avg First Reply", "30 min", "▲ 2%")
+    col2.metric("Avg Resolve Time", "22 min", "▼ 5%")
+    col3.metric("Messages", "1.2K", "▲ 20%")
+    col4.metric("Emails", "900", "▲ 33%")
 
-    # ---------------- PAGE 1: OVERVIEW ----------------
-    if page == "📊 Overview":
-
-        st.subheader("📊 KPI Dashboard")
-
-        col1, col2, col3 = st.columns(3)
-
-        col1.metric("Rows", len(df))
-        col2.metric("Columns", len(df.columns))
-        col3.metric("Numeric Columns", len(numeric_cols))
-
-        st.divider()
-
-        st.subheader("📄 Data Preview")
-        st.dataframe(df)
-
-    # ---------------- PAGE 2: TREND ----------------
-    elif page == "📈 Trend Analysis":
-
-        st.subheader("📈 Trend Analysis")
-
-        x_col = st.selectbox("Select X-Axis", df.columns)
-        y_col = st.selectbox("Select Y-Axis", df.columns)
-
-        data = df[[x_col, y_col]].dropna()
-        data[y_col] = pd.to_numeric(data[y_col], errors='coerce')
-        data = data.dropna()
-
-        fig, ax = plt.subplots()
-        ax.plot(data[x_col], data[y_col], marker="o", color="green")
-        ax.set_title("Trend Analysis")
-        plt.xticks(rotation=45)
-
-        st.pyplot(fig)
-
-    # ---------------- PAGE 3: CORRELATION ----------------
-    elif page == "🔥 Correlation":
-
-        st.subheader("🔥 Correlation Heatmap")
-
-        if len(numeric_cols) > 1:
-            fig, ax = plt.subplots()
-            sns.heatmap(df[numeric_cols].corr(), annot=True, cmap="coolwarm", ax=ax)
-            st.pyplot(fig)
-        else:
-            st.warning("Not enough numeric columns for correlation")
-
-    # ---------------- PAGE 4: INSIGHTS ----------------
-    elif page == "🧠 Insights":
-
-        st.subheader("🧠 Auto Insights")
-
-        st.info(f"""
-        📌 Total Rows: {len(df)}  
-        📌 Total Columns: {len(df.columns)}  
-        📌 Missing Values: {df.isnull().sum().sum()}  
-        📌 Duplicate Rows: {df.duplicated().sum()}  
-        """)
-
-        if len(numeric_cols) > 0:
-            col = numeric_cols[0]
-
-            st.success(f"""
-            📊 {col} Stats:
-            - Max: {df[col].max()}  
-            - Min: {df[col].min()}  
-            - Avg: {df[col].mean()}  
-            """)
-
-    # ---------------- DOWNLOAD ----------------
     st.divider()
 
-    st.download_button(
-        "⬇ Download Report",
-        df.to_csv(index=False),
-        "ultra_pro_dashboard.csv",
-        "text/csv"
-    )
+    # ---------------- CHARTS ----------------
+    col1, col2 = st.columns([2,1])
 
-else:
-    st.info("👆 Upload file to start Ultra Pro Dashboard")
+    with col1:
+        fig = px.line(df, x="Month", y=["Tickets", "Resolved"], title="Tickets Trend")
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        fig2 = px.pie(df, names="Month", values="Tickets", title="Tickets Share")
+        st.plotly_chart(fig2, use_container_width=True)
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        fig3 = px.bar(df, x="Month", y="Tickets", title="Tickets per Month")
+        st.plotly_chart(fig3, use_container_width=True)
+
+    with col2:
+        fig4 = px.line(df, x="Month", y="Resolved", title="Resolved Trend")
+        st.plotly_chart(fig4, use_container_width=True)
+
+# ---------------- ANALYTICS PAGE ----------------
+elif page == "Analytics":
+
+    st.subheader("📈 Detailed Analytics")
+
+    st.write(df.describe())
+
+    fig = px.bar(df, x="Month", y="Tickets")
+    st.plotly_chart(fig, use_container_width=True)
