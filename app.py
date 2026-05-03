@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import matplotlib.pyplot as plt
 
-st.title("📊 Dashboard Generator")
+st.title("📊 Simple Dashboard Generator (Matplotlib)")
 
-# STEP 1: File upload
+# File upload
 file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
 
-# STEP 2: Check file uploaded or not
 if file is not None:
 
     # Read file
@@ -16,29 +15,44 @@ if file is not None:
     else:
         df = pd.read_excel(file)
 
-    st.success("File uploaded successfully!")
-
-    # Show data
+    st.subheader("📄 Data Preview")
     st.dataframe(df)
 
     # Select column
     column = st.selectbox("Select Column", df.columns)
 
-    # Chart type
-    chart = st.selectbox("Chart Type", ["Bar", "Line", "Pie"])
+    chart_type = st.selectbox("Select Chart Type", ["Bar", "Line", "Histogram"])
 
-    # BAR
-    if chart == "Bar":
-        st.plotly_chart(px.bar(df, y=column))
+    data = df[column].dropna()
 
-    # LINE
-    elif chart == "Line":
-        st.plotly_chart(px.line(df, y=column))
+    # 📊 BAR CHART
+    if chart_type == "Bar":
+        fig, ax = plt.subplots()
+        ax.bar(range(len(data)), data)
+        ax.set_title("Bar Chart")
+        st.pyplot(fig)
 
-    # PIE
-    else:
-        st.plotly_chart(px.pie(df, names=df.index, values=column))
+    # 📈 LINE CHART
+    elif chart_type == "Line":
+        fig, ax = plt.subplots()
+        ax.plot(data.values)
+        ax.set_title("Line Chart")
+        st.pyplot(fig)
 
-# STEP 3: If no file uploaded
+    # 📊 HISTOGRAM
+    elif chart_type == "Histogram":
+        fig, ax = plt.subplots()
+        ax.hist(data, bins=10)
+        ax.set_title("Histogram")
+        st.pyplot(fig)
+
+    # Download data
+    st.download_button(
+        "Download CSV",
+        df.to_csv(index=False),
+        "data.csv",
+        "text/csv"
+    )
+
 else:
     st.info("👆 Please upload a file to generate dashboard")
