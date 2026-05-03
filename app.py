@@ -1,104 +1,111 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
-st.set_page_config(page_title="PRO BI Dashboard", layout="wide")
+st.set_page_config(page_title="Ultra Pro Dashboard", layout="wide")
 
-st.title("📊 PRO Power BI Style Dashboard (Python)")
+st.title("📊 ULTRA PRO Power BI Style Dashboard")
 
 # ---------------- UPLOAD ----------------
 file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xlsx"])
 
 if file is not None:
 
-    # Read file
+    # Read data
     if file.name.endswith("csv"):
         df = pd.read_csv(file)
     else:
         df = pd.read_excel(file)
 
-    # ---------------- SIDEBAR FILTER ----------------
-    st.sidebar.header("🎛 Filters")
+    # ---------------- SIDEBAR NAVIGATION ----------------
+    st.sidebar.title("📌 Navigation")
 
-    columns = df.columns.tolist()
-
-    x_col = st.sidebar.selectbox("Select X-Axis", columns)
-    y_col = st.sidebar.selectbox("Select Y-Axis (Numeric)", columns)
-
-    chart_type = st.sidebar.selectbox("Chart Type", ["Bar", "Line"])
-
-    # Category filter (if exists)
-    cat_col = st.sidebar.selectbox("Filter Column (Optional)", ["None"] + columns)
-
-    if cat_col != "None":
-        selected_value = st.sidebar.multiselect(
-            "Select Values",
-            df[cat_col].dropna().unique()
-        )
-        if selected_value:
-            df = df[df[cat_col].isin(selected_value)]
-
-    # ---------------- KPI SECTION ----------------
-    st.subheader("📌 Key Performance Indicators")
-
-    col1, col2, col3 = st.columns(3)
+    page = st.sidebar.radio(
+        "Go to",
+        ["📊 Overview", "📈 Trend Analysis", "🔥 Correlation", "🧠 Insights"]
+    )
 
     numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
 
-    if len(numeric_cols) > 0:
+    # ---------------- PAGE 1: OVERVIEW ----------------
+    if page == "📊 Overview":
+
+        st.subheader("📊 KPI Dashboard")
+
+        col1, col2, col3 = st.columns(3)
+
         col1.metric("Rows", len(df))
         col2.metric("Columns", len(df.columns))
-        col3.metric("Total (First Numeric)", df[numeric_cols[0]].sum())
+        col3.metric("Numeric Columns", len(numeric_cols))
 
-    st.divider()
+        st.divider()
 
-    # ---------------- DATA ----------------
-    st.subheader("📄 Data Preview")
-    st.dataframe(df)
+        st.subheader("📄 Data Preview")
+        st.dataframe(df)
 
-    st.divider()
+    # ---------------- PAGE 2: TREND ----------------
+    elif page == "📈 Trend Analysis":
 
-    # ---------------- CHART ----------------
-    st.subheader("📊 Visualization")
+        st.subheader("📈 Trend Analysis")
 
-    data = df[[x_col, y_col]].dropna()
-    data[y_col] = pd.to_numeric(data[y_col], errors='coerce')
-    data = data.dropna()
+        x_col = st.selectbox("Select X-Axis", df.columns)
+        y_col = st.selectbox("Select Y-Axis", df.columns)
 
-    fig, ax = plt.subplots()
+        data = df[[x_col, y_col]].dropna()
+        data[y_col] = pd.to_numeric(data[y_col], errors='coerce')
+        data = data.dropna()
 
-    if chart_type == "Bar":
-        ax.bar(data[x_col], data[y_col], color="#1f77b4")
-        ax.set_title("Bar Chart")
-
-    else:
+        fig, ax = plt.subplots()
         ax.plot(data[x_col], data[y_col], marker="o", color="green")
-        ax.set_title("Line Chart")
+        ax.set_title("Trend Analysis")
+        plt.xticks(rotation=45)
 
-    ax.set_xlabel(x_col)
-    ax.set_ylabel(y_col)
-    plt.xticks(rotation=45)
+        st.pyplot(fig)
 
-    st.pyplot(fig)
+    # ---------------- PAGE 3: CORRELATION ----------------
+    elif page == "🔥 Correlation":
 
-    # ---------------- INSIGHTS ----------------
-    st.subheader("🧠 Auto Insights")
+        st.subheader("🔥 Correlation Heatmap")
 
-    st.info(f"""
-    📌 Total Records: {len(df)}  
-    📌 Columns: {len(df.columns)}  
-    📌 Max Value in {y_col}: {df[y_col].max()}  
-    📌 Min Value in {y_col}: {df[y_col].min()}  
-    📌 Average: {df[y_col].mean()}
-    """)
+        if len(numeric_cols) > 1:
+            fig, ax = plt.subplots()
+            sns.heatmap(df[numeric_cols].corr(), annot=True, cmap="coolwarm", ax=ax)
+            st.pyplot(fig)
+        else:
+            st.warning("Not enough numeric columns for correlation")
+
+    # ---------------- PAGE 4: INSIGHTS ----------------
+    elif page == "🧠 Insights":
+
+        st.subheader("🧠 Auto Insights")
+
+        st.info(f"""
+        📌 Total Rows: {len(df)}  
+        📌 Total Columns: {len(df.columns)}  
+        📌 Missing Values: {df.isnull().sum().sum()}  
+        📌 Duplicate Rows: {df.duplicated().sum()}  
+        """)
+
+        if len(numeric_cols) > 0:
+            col = numeric_cols[0]
+
+            st.success(f"""
+            📊 {col} Stats:
+            - Max: {df[col].max()}  
+            - Min: {df[col].min()}  
+            - Avg: {df[col].mean()}  
+            """)
 
     # ---------------- DOWNLOAD ----------------
+    st.divider()
+
     st.download_button(
-        "⬇ Download Clean Data",
+        "⬇ Download Report",
         df.to_csv(index=False),
-        "pro_dashboard.csv",
+        "ultra_pro_dashboard.csv",
         "text/csv"
     )
 
 else:
-    st.info("👆 Upload file to generate PRO dashboard")
+    st.info("👆 Upload file to start Ultra Pro Dashboard")
